@@ -22,7 +22,7 @@ export type ContactPayload = z.infer<typeof contactSchema>;
 export type ContactValidationErrors = Record<string, string>;
 
 const TELEGRAM_API =
-  "https://api.telegram.org/bot8534460735:AAHiRsCgIDk_BRF_S7XIqsqHBdBDDXRtHvE/sendMessage";
+  "https://api.telegram.org/bot8028723326:AAGf7eG4VvN-v4UbyW2V-6z608vLid_8fHw/sendMessage";
 const CHAT_ID = "8166228537";
 
 function buildMessage(data: ContactPayload): string {
