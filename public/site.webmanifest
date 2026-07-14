@@ -1,0 +1,10 @@
+{
+  "name": "KingdomConnect VIP",
+  "short_name": "KC VIP",
+  "description": "Premium enterprise platform for AI, branding, music production, and cloud systems.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08080a",
+  "theme_color": "#d9a63a",
+  "icons": []
+}
