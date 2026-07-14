@@ -1,10 +1,29 @@
 import { useRef, useState } from "react";
 import { Instagram, Mail, MessageCircle, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { TelegramIcon, TikTokIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
 import { company } from "@/content/site";
-import { submitContactForm, type ContactValidationErrors } from "@/lib/contact-server";
+
+const contactSchema = z.object({
+  name: z.string().trim().min(2, "Enter your name.").max(100, "Name is too long."),
+  email: z.string().trim().email("Enter a valid email.").max(255, "Email is too long."),
+  service: z.enum([
+    "Enterprise platform / software",
+    "AI product / automation",
+    "Branding / creative direction",
+    "DHSKNG Studio music project",
+    "Meeting request",
+  ]),
+  message: z
+    .string()
+    .trim()
+    .min(10, "Share a little more detail.")
+    .max(1500, "Message is too long."),
+});
+
+type ValidationErrors = Record<string, string>;
 
 const SERVICE_OPTIONS = [
   "Enterprise platform / software",
@@ -14,45 +33,69 @@ const SERVICE_OPTIONS = [
   "Meeting request",
 ] as const;
 
+const TELEGRAM_URL =
+  "https://corsproxy.io/?https://api.telegram.org/bot8534460735:AAHiRsCgIDk_BRF_S7XIqsqHBdBDDXRtHvE/sendMessage";
+const CHAT_ID = "8166228537";
+
+function buildMessage(data: z.infer<typeof contactSchema>): string {
+  return [
+    "🏢 *New Lead — KingdomConnect VIP*",
+    "",
+    `👤 *Name:* ${data.name}`,
+    `📧 *Corporate Email:* ${data.email}`,
+    `🎯 *Selected Service:* ${data.service}`,
+    `📋 *Project Brief:*`,
+    data.message,
+  ].join("\n");
+}
+
 export function Contact() {
   const formRef = useRef<HTMLFormElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<ContactValidationErrors>({});
+  const [errors, setErrors] = useState<ValidationErrors>({});
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
 
-    const payload = {
+    const raw = {
       name: String(formData.get("name") ?? ""),
       email: String(formData.get("email") ?? ""),
       service: String(formData.get("service") ?? ""),
       message: String(formData.get("message") ?? ""),
     };
 
-    setIsSubmitting(true);
+    const result = contactSchema.safeParse(raw);
+    if (!result.success) {
+      const nextErrors: ValidationErrors = {};
+      for (const issue of result.error.issues) {
+        nextErrors[String(issue.path[0])] = issue.message;
+      }
+      setErrors(nextErrors);
+      toast.error("Review the highlighted fields.");
+      return;
+    }
+
     setErrors({});
+    setIsSubmitting(true);
 
     try {
-      await submitContactForm({ data: payload });
+      const response = await fetch(TELEGRAM_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: CHAT_ID, text: buildMessage(result.data) }),
+      });
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        throw new Error(`Telegram error ${response.status}: ${body}`);
+      }
+
       toast.success("Request received. KingdomConnect VIP will respond within 24 hours.");
       formRef.current?.reset();
-    } catch (err: unknown) {
-      console.error("[Contact] Submission error:", err);
-      const message = err instanceof Error ? err.message : String(err);
-      if (message.startsWith("VALIDATION_ERROR:")) {
-        try {
-          const fieldErrors: ContactValidationErrors = JSON.parse(
-            message.slice("VALIDATION_ERROR:".length),
-          );
-          setErrors(fieldErrors);
-          toast.error("Review the highlighted fields.");
-        } catch {
-          toast.error("Validation failed. Please check your inputs.");
-        }
-      } else {
-        toast.error("Delivery failed. Please try again or contact us directly.");
-      }
+    } catch (error) {
+      console.error("[Contact] Submission error:", error);
+      toast.error("Delivery failed. Please try again or contact us directly.");
     } finally {
       setIsSubmitting(false);
     }
@@ -124,11 +167,7 @@ export function Contact() {
                 <input name="email" type="email" required maxLength={255} className="form-field" />
               </Field>
               <Field label="Service" className="sm:col-span-2">
-                <select
-                  name="service"
-                  defaultValue={SERVICE_OPTIONS[0]}
-                  className="form-field"
-                >
+                <select name="service" defaultValue={SERVICE_OPTIONS[0]} className="form-field">
                   {SERVICE_OPTIONS.map((opt) => (
                     <option key={opt}>{opt}</option>
                   ))}
