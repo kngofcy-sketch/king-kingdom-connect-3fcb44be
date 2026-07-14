@@ -11,6 +11,7 @@ import { Hero } from "@/components/sections/Hero";
 import { KNGAILabs } from "@/components/sections/KNGAILabs";
 import { Leadership } from "@/components/sections/Leadership";
 import { Portfolio } from "@/components/sections/Portfolio";
+import { Pricing } from "@/components/sections/Pricing";
 import { Services } from "@/components/sections/Services";
 import { Testimonials } from "@/components/sections/Testimonials";
 
@@ -70,6 +71,7 @@ function Home() {
         <KNGAILabs />
         <Portfolio />
         <Services />
+        <Pricing />
         <Testimonials />
         <Contact />
       </main>

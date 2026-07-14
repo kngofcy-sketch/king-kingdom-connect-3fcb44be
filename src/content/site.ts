@@ -33,12 +33,14 @@ export const company = {
 };
 
 export const navItems = [
-  { href: "#company", label: "Company" },
-  { href: "#divisions", label: "Divisions" },
-  { href: "#leadership", label: "Leadership" },
-  { href: "#ai-labs", label: "AI Labs" },
-  { href: "#portfolio", label: "Portfolio" },
-  { href: "#contact", label: "Contact" },
+  { href: "#company", label: "Company", route: false },
+  { href: "#divisions", label: "Divisions", route: false },
+  { href: "#leadership", label: "Leadership", route: false },
+  { href: "#ai-labs", label: "AI Labs", route: false },
+  { href: "#portfolio", label: "Portfolio", route: false },
+  { href: "#pricing", label: "Pricing", route: false },
+  { href: "#contact", label: "Contact", route: false },
+  { href: "/merch", label: "Merch", route: true },
 ];
 
 export const stats = [
