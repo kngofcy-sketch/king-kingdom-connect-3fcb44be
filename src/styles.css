@@ -154,6 +154,29 @@
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--gold) 18%, transparent);
     outline: none;
   }
+
+  .checkout-input {
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: 1px solid color-mix(in oklab, white 14%, transparent);
+    background: color-mix(in oklab, oklch(0.1 0.005 264) 80%, transparent);
+    padding: 0.8rem 1rem;
+    color: var(--foreground);
+    font-size: 0.9rem;
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .checkout-input::placeholder {
+    color: color-mix(in oklab, var(--muted-foreground) 60%, transparent);
+  }
+
+  .checkout-input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--gold) 16%, transparent);
+    outline: none;
+  }
 }
 
 @keyframes cinematic-sweep {

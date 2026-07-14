@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { Check, Crown, Sparkles, Star } from "lucide-react";
+
+import { CheckoutModal, type CheckoutItem } from "@/components/checkout/CheckoutModal";
 
 const plans = [
   {
@@ -7,15 +10,14 @@ const plans = [
     currency: "USD",
     icon: Star,
     highlight: false,
-    badge: null,
+    badge: null as string | null,
     features: [
       "Logo 3D / Holográfico",
       "Branding básico",
       "3 Gráficos para redes sociales",
       "2 rondas de revisión",
     ],
-    cta: "Get Started",
-    href: "#contact",
+    description: "Logo 3D/Holográfico · Branding básico · 3 social graphics",
   },
   {
     name: "Pro Brand Identity",
@@ -30,8 +32,7 @@ const plans = [
       "10 Gráficos para redes sociales",
       "Material listo para entrega",
     ],
-    cta: "Get Started",
-    href: "#contact",
+    description: "Full visual identity · Web mockup · 10 social graphics",
   },
   {
     name: "Elite Production & Strategy",
@@ -46,12 +47,24 @@ const plans = [
       "Desarrollo web funcional (Hostinger Ready)",
       "KNG-SYS ELITE integration",
     ],
-    cta: "Get Started",
-    href: "#contact",
+    description: "Full Pro plan · Brand strategy · Functional web dev · KNG-SYS ELITE",
   },
 ];
 
 export function Pricing() {
+  const [checkoutItem, setCheckoutItem] = useState<CheckoutItem | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const openCheckout = (plan: (typeof plans)[number]) => {
+    setCheckoutItem({
+      name: plan.name,
+      price: plan.price,
+      description: plan.description,
+      badge: plan.badge ?? undefined,
+    });
+    setModalOpen(true);
+  };
+
   return (
     <section id="pricing" className="section-band">
       <div className="mx-auto max-w-7xl px-6">
@@ -119,7 +132,10 @@ export function Pricing() {
 
                 <ul className="mt-8 flex flex-col gap-3">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3 text-sm text-muted-foreground">
+                    <li
+                      key={feature}
+                      className="flex items-start gap-3 text-sm text-muted-foreground"
+                    >
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                       {feature}
                     </li>
@@ -127,16 +143,17 @@ export function Pricing() {
                 </ul>
 
                 <div className="mt-auto pt-8">
-                  <a
-                    href={plan.href}
+                  <button
+                    type="button"
+                    onClick={() => openCheckout(plan)}
                     className={`inline-flex w-full items-center justify-center rounded-md px-6 py-3.5 text-sm font-black uppercase tracking-[0.14em] transition hover:-translate-y-[1px] ${
                       plan.highlight
                         ? "bg-gradient-gold text-primary-foreground shadow-gold"
                         : "border border-gold/40 bg-transparent text-gold hover:bg-gold/5"
                     }`}
                   >
-                    {plan.cta}
-                  </a>
+                    Get Started
+                  </button>
                 </div>
               </div>
             );
@@ -150,6 +167,12 @@ export function Pricing() {
           </a>
         </p>
       </div>
+
+      <CheckoutModal
+        item={checkoutItem}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+      />
     </section>
   );
 }
