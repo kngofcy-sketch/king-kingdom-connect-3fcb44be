@@ -1,55 +1,53 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Instagram, Mail, MessageCircle, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { z } from "zod";
 
 import { TelegramIcon, TikTokIcon, WhatsAppIcon } from "@/components/icons/BrandIcons";
 import { company } from "@/content/site";
+import { submitContactForm, type ContactValidationErrors } from "@/lib/contact-server";
 
-const contactSchema = z.object({
-  name: z.string().trim().min(2, "Enter your name.").max(100, "Name is too long."),
-  email: z.string().trim().email("Enter a valid email.").max(255, "Email is too long."),
-  service: z.enum([
-    "Enterprise platform / software",
-    "AI product / automation",
-    "Branding / creative direction",
-    "DHSKNG Studio music project",
-    "Meeting request",
-  ]),
-  message: z
-    .string()
-    .trim()
-    .min(10, "Share a little more detail.")
-    .max(1500, "Message is too long."),
-});
+const SERVICE_OPTIONS = [
+  "Enterprise platform / software",
+  "AI product / automation",
+  "Branding / creative direction",
+  "DHSKNG Studio music project",
+  "Meeting request",
+] as const;
 
 export function Contact() {
-  const [sent, setSent] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<ContactValidationErrors>({});
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const result = contactSchema.safeParse({
-      name: formData.get("name"),
-      email: formData.get("email"),
-      service: formData.get("service"),
-      message: formData.get("message"),
-    });
 
-    if (!result.success) {
-      const nextErrors: Record<string, string> = {};
-      for (const issue of result.error.issues) {
-        nextErrors[String(issue.path[0])] = issue.message;
-      }
-      setErrors(nextErrors);
-      toast.error("Review the highlighted fields.");
-      return;
-    }
+    const payload = {
+      name: String(formData.get("name") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      service: String(formData.get("service") ?? ""),
+      message: String(formData.get("message") ?? ""),
+    };
 
+    setIsSubmitting(true);
     setErrors({});
-    setSent(true);
-    toast.success("Request received. KingdomConnect VIP will respond within 24 hours.");
+
+    try {
+      await submitContactForm({ data: payload });
+      toast.success("Request received. KingdomConnect VIP will respond within 24 hours.");
+      formRef.current?.reset();
+    } catch (err: unknown) {
+      const caught = err as { type?: string; errors?: ContactValidationErrors; message?: string };
+      if (caught?.type === "validation" && caught.errors) {
+        setErrors(caught.errors);
+        toast.error("Review the highlighted fields.");
+      } else {
+        toast.error("Delivery failed. Please try again or contact us directly.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -104,6 +102,7 @@ export function Contact() {
           </div>
 
           <form
+            ref={formRef}
             onSubmit={handleSubmit}
             noValidate
             className="rounded-md border border-white/10 bg-card/70 p-5 shadow-2xl backdrop-blur sm:p-8"
@@ -119,14 +118,12 @@ export function Contact() {
               <Field label="Service" className="sm:col-span-2">
                 <select
                   name="service"
-                  defaultValue="Enterprise platform / software"
+                  defaultValue={SERVICE_OPTIONS[0]}
                   className="form-field"
                 >
-                  <option>Enterprise platform / software</option>
-                  <option>AI product / automation</option>
-                  <option>Branding / creative direction</option>
-                  <option>DHSKNG Studio music project</option>
-                  <option>Meeting request</option>
+                  {SERVICE_OPTIONS.map((opt) => (
+                    <option key={opt}>{opt}</option>
+                  ))}
                 </select>
               </Field>
               <Field label="Project Brief" error={errors.message} className="sm:col-span-2">
@@ -146,9 +143,11 @@ export function Contact() {
               </p>
               <button
                 type="submit"
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-gradient-gold px-6 py-3 text-sm font-black uppercase tracking-[0.12em] text-primary-foreground shadow-gold transition hover:translate-y-[-1px]"
+                disabled={isSubmitting}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-gradient-gold px-6 py-3 text-sm font-black uppercase tracking-[0.12em] text-primary-foreground shadow-gold transition hover:translate-y-[-1px] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
-                {sent ? "Request Sent" : "Send Request"} <Send className="h-4 w-4" />
+                {isSubmitting ? "Sending..." : "Send Request"}
+                <Send className="h-4 w-4" />
               </button>
             </div>
           </form>
