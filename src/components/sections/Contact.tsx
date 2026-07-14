@@ -33,21 +33,8 @@ const SERVICE_OPTIONS = [
   "Meeting request",
 ] as const;
 
-const TELEGRAM_URL =
-  "https://corsproxy.io/?https://api.telegram.org/bot8534460735:AAHiRsCgIDk_BRF_S7XIqsqHBdBDDXRtHvE/sendMessage";
-const CHAT_ID = "8166228537";
-
-function buildMessage(data: z.infer<typeof contactSchema>): string {
-  return [
-    "🏢 *New Lead — KingdomConnect VIP*",
-    "",
-    `👤 *Name:* ${data.name}`,
-    `📧 *Corporate Email:* ${data.email}`,
-    `🎯 *Selected Service:* ${data.service}`,
-    `📋 *Project Brief:*`,
-    data.message,
-  ].join("\n");
-}
+const WEB3FORMS_URL = "https://api.web3forms.com/submit";
+const WEB3FORMS_ACCESS_KEY = "48dd3cbb-77e7-4082-9364-db7d6f759a85";
 
 export function Contact() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -80,15 +67,25 @@ export function Contact() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(TELEGRAM_URL, {
+      const response = await fetch(WEB3FORMS_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: CHAT_ID, text: buildMessage(result.data) }),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_ACCESS_KEY,
+          name: result.data.name,
+          email: result.data.email,
+          service: result.data.service,
+          message: result.data.message,
+          subject: "New Lead from KingdomConnect VIP",
+        }),
       });
 
       if (!response.ok) {
         const body = await response.text().catch(() => "");
-        throw new Error(`Telegram error ${response.status}: ${body}`);
+        throw new Error(`Web3Forms error ${response.status}: ${body}`);
       }
 
       toast.success("Request received. KingdomConnect VIP will respond within 24 hours.");
