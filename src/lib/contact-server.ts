@@ -45,25 +45,33 @@ export const submitContactForm = createServerFn({ method: "POST" })
       for (const issue of result.error.issues) {
         fieldErrors[String(issue.path[0])] = issue.message;
       }
-      throw { type: "validation", errors: fieldErrors };
+      // Encode validation errors as a structured Error so they survive the RPC boundary
+      const err = new Error("VALIDATION_ERROR:" + JSON.stringify(fieldErrors));
+      console.error("[contact-server] Validation failed:", fieldErrors);
+      throw err;
     }
     return result.data;
   })
   .handler(async ({ data }) => {
-    const response = await fetch(TELEGRAM_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: CHAT_ID,
-        text: buildMessage(data),
-        parse_mode: "Markdown",
-      }),
-    });
+    try {
+      const response = await fetch(TELEGRAM_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: buildMessage(data),
+          parse_mode: "Markdown",
+        }),
+      });
 
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      throw new Error(`Telegram API error ${response.status}: ${body}`);
+      if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        throw new Error(`Telegram API error ${response.status}: ${body}`);
+      }
+
+      return { ok: true };
+    } catch (error) {
+      console.error("[contact-server] Telegram fetch failed:", error);
+      throw error;
     }
-
-    return { ok: true };
   });

@@ -38,10 +38,18 @@ export function Contact() {
       toast.success("Request received. KingdomConnect VIP will respond within 24 hours.");
       formRef.current?.reset();
     } catch (err: unknown) {
-      const caught = err as { type?: string; errors?: ContactValidationErrors; message?: string };
-      if (caught?.type === "validation" && caught.errors) {
-        setErrors(caught.errors);
-        toast.error("Review the highlighted fields.");
+      console.error("[Contact] Submission error:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.startsWith("VALIDATION_ERROR:")) {
+        try {
+          const fieldErrors: ContactValidationErrors = JSON.parse(
+            message.slice("VALIDATION_ERROR:".length),
+          );
+          setErrors(fieldErrors);
+          toast.error("Review the highlighted fields.");
+        } catch {
+          toast.error("Validation failed. Please check your inputs.");
+        }
       } else {
         toast.error("Delivery failed. Please try again or contact us directly.");
       }
