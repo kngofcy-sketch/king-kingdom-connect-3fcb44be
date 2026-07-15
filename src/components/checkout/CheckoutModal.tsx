@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { CreditCard, Lock, Shield, X } from "lucide-react";
+import { Lock, Shield, X } from "lucide-react";
 import { toast } from "sonner";
 
 export type CheckoutItem = {
@@ -16,72 +16,16 @@ type Props = {
   onClose: () => void;
 };
 
-type CardBrand = "visa" | "mastercard" | "amex" | "discover" | "unknown";
-
-function detectBrand(value: string): CardBrand {
-  const n = value.replace(/\s/g, "");
-  if (/^4/.test(n)) return "visa";
-  if (/^5[1-5]/.test(n) || /^2[2-7]/.test(n)) return "mastercard";
-  if (/^3[47]/.test(n)) return "amex";
-  if (/^6(?:011|5)/.test(n)) return "discover";
-  return "unknown";
-}
-
-function formatCardNumber(value: string, brand: CardBrand): string {
-  const digits = value.replace(/\D/g, "").slice(0, brand === "amex" ? 15 : 16);
-  if (brand === "amex") {
-    return digits.replace(/(\d{4})(\d{6})(\d{0,5})/, (_, a, b, c) =>
-      [a, b, c].filter(Boolean).join(" ")
-    );
-  }
-  return digits.replace(/(\d{4})/g, "$1 ").trim();
-}
-
-function formatExpiry(value: string): string {
-  const digits = value.replace(/\D/g, "").slice(0, 4);
-  if (digits.length >= 3) return `${digits.slice(0, 2)} / ${digits.slice(2)}`;
-  return digits;
-}
-
-function CardBrandIcon({ brand }: { brand: CardBrand }) {
-  const base =
-    "inline-flex h-6 items-center justify-center rounded px-1.5 text-[10px] font-black uppercase tracking-wide";
-  if (brand === "visa")
-    return <span className={`${base} bg-[#1a1f71] text-white`}>VISA</span>;
-  if (brand === "mastercard")
-    return (
-      <span className={`${base} gap-0.5 bg-transparent`}>
-        <span className="h-5 w-5 rounded-full bg-[#eb001b] opacity-90" />
-        <span className="-ml-2.5 h-5 w-5 rounded-full bg-[#f79e1b] opacity-90" />
-      </span>
-    );
-  if (brand === "amex")
-    return <span className={`${base} bg-[#007bc1] text-white`}>AMEX</span>;
-  if (brand === "discover")
-    return <span className={`${base} bg-[#f76f20] text-white`}>DISC</span>;
-  return <CreditCard className="h-5 w-5 text-muted-foreground" />;
-}
-
 export function CheckoutModal({ item, open, onClose }: Props) {
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvc, setCvc] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
   const [processing, setProcessing] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const brand = detectBrand(cardNumber);
-
   useEffect(() => {
     if (!open) {
-      setCardNumber("");
-      setExpiry("");
-      setCvc("");
       setName("");
       setEmail("");
-      setAddress("");
       setProcessing(false);
     }
     return () => {
@@ -96,11 +40,11 @@ export function CheckoutModal({ item, open, onClose }: Props) {
     timerRef.current = setTimeout(() => {
       setProcessing(false);
       onClose();
-      toast.success("Payment Successful! Welcome to KingdomConnect.", {
-        description: `Your order for ${item?.name} has been confirmed.`,
+      toast.success("Order reserved!", {
+        description: `We'll email ${email} with payment instructions for ${item?.name}.`,
         duration: 5000,
       });
-    }, 2000);
+    }, 1500);
   };
 
   if (!item) return null;
@@ -116,10 +60,10 @@ export function CheckoutModal({ item, open, onClose }: Props) {
           <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
             <div>
               <Dialog.Title className="font-display text-lg font-bold text-foreground">
-                Secure Checkout
+                Reserve Your Order
               </Dialog.Title>
               <p id="checkout-description" className="mt-0.5 text-xs text-muted-foreground">
-                Powered by Stripe. 256-bit SSL encryption.
+                We'll send payment instructions by email.
               </p>
             </div>
             <Dialog.Close
@@ -168,7 +112,7 @@ export function CheckoutModal({ item, open, onClose }: Props) {
             className="flex flex-1 flex-col overflow-y-auto px-6 py-6"
           >
             <div className="flex flex-col gap-5">
-              <CheckoutField label="Cardholder Name">
+              <CheckoutField label="Full Name">
                 <input
                   required
                   value={name}
@@ -190,66 +134,6 @@ export function CheckoutModal({ item, open, onClose }: Props) {
                   autoComplete="email"
                 />
               </CheckoutField>
-
-              <CheckoutField label="Card Number">
-                <div className="relative">
-                  <input
-                    required
-                    value={cardNumber}
-                    onChange={(e) =>
-                      setCardNumber(formatCardNumber(e.target.value.replace(/\D/g, ""), brand))
-                    }
-                    placeholder="1234 5678 9012 3456"
-                    maxLength={brand === "amex" ? 17 : 19}
-                    className="checkout-input pr-14"
-                    autoComplete="cc-number"
-                    inputMode="numeric"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <CardBrandIcon brand={brand} />
-                  </span>
-                </div>
-              </CheckoutField>
-
-              <div className="grid grid-cols-2 gap-4">
-                <CheckoutField label="Expiry Date">
-                  <input
-                    required
-                    value={expiry}
-                    onChange={(e) =>
-                      setExpiry(formatExpiry(e.target.value))
-                    }
-                    placeholder="MM / YY"
-                    maxLength={7}
-                    className="checkout-input"
-                    autoComplete="cc-exp"
-                    inputMode="numeric"
-                  />
-                </CheckoutField>
-                <CheckoutField label="CVC">
-                  <input
-                    required
-                    value={cvc}
-                    onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, brand === "amex" ? 4 : 3))}
-                    placeholder={brand === "amex" ? "4 digits" : "3 digits"}
-                    maxLength={brand === "amex" ? 4 : 3}
-                    className="checkout-input"
-                    autoComplete="cc-csc"
-                    inputMode="numeric"
-                  />
-                </CheckoutField>
-              </div>
-
-              <CheckoutField label="Billing Address">
-                <input
-                  required
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="123 Main St, Miami, FL 33101"
-                  className="checkout-input"
-                  autoComplete="street-address"
-                />
-              </CheckoutField>
             </div>
 
             <div className="mt-auto pt-8">
@@ -261,24 +145,22 @@ export function CheckoutModal({ item, open, onClose }: Props) {
                 {processing ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
-                    Processing Secure Payment via Stripe...
+                    Reserving...
                   </>
                 ) : (
                   <>
                     <Lock className="h-4 w-4" />
-                    Pay Now — {item.price}
+                    Reserve — {item.price}
                   </>
                 )}
               </button>
 
               <div className="mt-4 flex items-center justify-center gap-4 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <Shield className="h-3.5 w-3.5 text-gold" /> SSL Secured
+                  <Shield className="h-3.5 w-3.5 text-gold" /> Secure checkout
                 </span>
                 <span className="h-3 w-px bg-white/10" />
-                <span className="flex items-center gap-1.5">
-                  <Lock className="h-3.5 w-3.5 text-gold" /> Stripe Encrypted
-                </span>
+                <span>No payment required now</span>
               </div>
             </div>
           </form>

@@ -21,9 +21,11 @@ const contactSchema = z.object({
 export type ContactPayload = z.infer<typeof contactSchema>;
 export type ContactValidationErrors = Record<string, string>;
 
-const TELEGRAM_API =
-  "https://api.telegram.org/bot8028723326:AAGf7eG4VvN-v4UbyW2V-6z608vLid_8fHw/sendMessage";
-const CHAT_ID = "8166228537";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const TELEGRAM_API = TELEGRAM_BOT_TOKEN
+  ? `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`
+  : "";
 
 function buildMessage(data: ContactPayload): string {
   return [
@@ -53,12 +55,17 @@ export const submitContactForm = createServerFn({ method: "POST" })
     return result.data;
   })
   .handler(async ({ data }) => {
+    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+      console.error("[contact-server] TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set");
+      throw new Error("Contact form is not configured.");
+    }
+
     try {
       const response = await fetch(TELEGRAM_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          chat_id: CHAT_ID,
+          chat_id: TELEGRAM_CHAT_ID,
           text: buildMessage(data),
           parse_mode: "Markdown",
         }),
